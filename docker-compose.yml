@@ -1,0 +1,36 @@
+version: '3.8'
+
+services: 
+  postgres:
+    image: postgres:latest
+    container_name: property_postgres
+    environment:
+      POSTGRES_DB: property_listings
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/postgres_data
+    networks:
+      - property_network
+
+  redis:
+    image: redis:latest
+    container_name: property_redis
+    ports:
+      - "6379:6379"
+    volume:
+      - redis_data:/data
+    networks:
+      - property_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  property_network:
+  driver: bridge
+  
