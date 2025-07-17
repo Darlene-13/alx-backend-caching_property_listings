@@ -8,8 +8,5 @@ router = DefaultRouter()
 router.register(r'api', views.PropertyViewSet, basename='property-api')
 
 urlpatterns = [
-    
-    #DRF viewsets
-    path('api/', include(router.urls))
-
+    path('', views.property_list(), name='property-list'),
 ]
