@@ -16,15 +16,15 @@ import environ
 
 
 # Initialize environment variables
-
 env = environ.Env(
     # Set casting and default values
     DEBUG=(bool, True),
 )
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -47,12 +47,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # local apps
-    'properties' # our custom app for property listings
+    'properties', # our custom app for property listings
 
     # Installed third-party apps can be added here
     'rest_framework',
     'django_filters',
-    'django_redis'
 ]
 
 MIDDLEWARE = [
@@ -107,7 +106,7 @@ DATABASES = {
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': f"redis://{env('REDIS_HOST', 'localhost')}:{env('REDIS_PORT', '6379')}/",
+        'LOCATION': f"redis://{env('REDIS_HOST', default = 'localhost')}:{env('REDIS_PORT',  default = '6379')}/",
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             'CONNECTION_POOL_KWARGS': {
