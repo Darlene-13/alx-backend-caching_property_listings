@@ -62,6 +62,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.cache.UpdateCacheMiddleware', #Cache middleware
+    'django.middlware.cache.FetchFromCacheMiddleware', #cache middleware
 ]
 
 ROOT_URLCONF = 'alx_backend_caching_property_listings.urls'
@@ -117,9 +119,15 @@ CACHES = {
             'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
         },
         'KEY_PREFIX': 'property_listings',
-        'TIMEOUT': 300, # 5 minutes default timeout
+        'TIMEOUT': 60 *15, # 15 minutes default timeout
+        'VERSION': 1,
     }
 }
+
+#Cache settings
+CACHE_MIDDLEWARE_ALIAS = 'default'
+CACHE_MIDDLEWARE_SECONDS = 60*15 # 15 Minutes
+CACHE_MIDDLEWARE_KEY_PREFIX = 'property_listings'
 
 # Session engine configuration
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
