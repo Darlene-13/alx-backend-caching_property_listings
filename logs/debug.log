@@ -146,3 +146,6 @@ Watching for file changes with StatReloader
 Watching for file changes with StatReloader
 "GET / HTTP/1.1" 302 0
 "GET /properties/ HTTP/1.1" 200 2099
+/home/darlenewendie/Downloads/alx-backend-caching_property_listings/properties/utils.py changed, reloading.
+Property signals imported and registered successfully.
+Watching for file changes with StatReloader

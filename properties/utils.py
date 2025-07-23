@@ -215,9 +215,9 @@ def get_redis_cache_metrics():
         keyspace_misses = redis_info.get('keyspace_misses', 0)
         
         # Calculate total operations and hit ratio
-        total_operations = keyspace_hits + keyspace_misses
-        hit_ratio = (keyspace_hits / total_operations * 100) if total_operations > 0 else 0
-        miss_ratio = (keyspace_misses / total_operations * 100) if total_operations > 0 else 0
+        total_requests = keyspace_hits + keyspace_misses
+        hit_ratio = (keyspace_hits / total_requests * 100) if total_requests > 0 else 0
+        miss_ratio = (keyspace_misses / total_requests * 100) if total_requests > 0 else 0
         
         # Get additional useful Redis metrics
         used_memory = redis_info.get('used_memory', 0)
@@ -244,7 +244,7 @@ def get_redis_cache_metrics():
             'cache_performance': {
                 'keyspace_hits': keyspace_hits,
                 'keyspace_misses': keyspace_misses,
-                'total_operations': total_operations,
+                'total_operations': total_requests,
                 'hit_ratio_percent': round(hit_ratio, 2),
                 'miss_ratio_percent': round(miss_ratio, 2),
                 'performance_rating': get_performance_rating(hit_ratio)
@@ -266,14 +266,14 @@ def get_redis_cache_metrics():
             'keyspace_info': keyspace_info,
             'analysis': {
                 'cache_efficiency': analyze_cache_efficiency(hit_ratio),
-                'recommendations': get_cache_recommendations(hit_ratio, total_operations)
+                'recommendations': get_cache_recommendations(hit_ratio, total_requests)
             }
         }
         
         # Log the metrics for monitoring
         logger.info(f"Redis cache metrics retrieved successfully:")
         logger.info(f"  Hit ratio: {hit_ratio:.2f}%")
-        logger.info(f"  Total operations: {total_operations}")
+        logger.info(f"  Total operations: {total_requests}")
         logger.info(f"  Memory usage: {used_memory_human}")
         logger.info(f"  Connected clients: {connected_clients}")
         
@@ -343,13 +343,13 @@ def analyze_cache_efficiency(hit_ratio):
         return "Cache performance is poor. Cache configuration needs immediate attention."
 
 
-def get_cache_recommendations(hit_ratio, total_operations):
+def get_cache_recommendations(hit_ratio, total_requests):
     """
     Get recommendations for cache optimization.
     
     Args:
         hit_ratio (float): Cache hit ratio percentage
-        total_operations (int): Total cache operations
+        total_requests (int): Total cache operations
         
     Returns:
         list: List of recommendations
@@ -378,7 +378,65 @@ def get_cache_recommendations(hit_ratio, total_operations):
     else:
         recommendations.append("Excellent cache performance. Continue monitoring.")
     
-    if total_operations < 100:
+    if total_requests < 100:
         recommendations.append("Low cache usage detected. Consider increasing cache utilization.")
     
     return recommendations
+
+
+def clear_all_property_caches():
+    """
+    Utility function to clear all property-related caches.
+    
+    This function can be called manually when needed, or from other parts
+    of the application that might affect property data.
+    """
+    logger.info("Manually clearing all property caches")
+    
+    caches_cleared = []
+    
+    # Clear queryset caches
+    for cache_key in CACHE_KEYS.values():
+        try:
+            cache.delete(cache_key)
+            caches_cleared.append(cache_key)
+            logger.info(f"Cleared cache key: {cache_key}")
+        except Exception as e:
+            logger.error(f"Error clearing cache key {cache_key}: {str(e)}")
+    
+    return caches_cleared
+
+
+# Additional signal handlers for related models (if you add them later)
+# For example, if you have a Category model related to Property:
+
+# @receiver(post_save, sender=Category)
+# def invalidate_cache_on_category_change(sender, instance, **kwargs):
+#     """Clear property cache when categories change since they might affect property lists"""
+#     logger.info(f"Category changed: {instance.name}, clearing property cache")
+#     cache.delete(CACHE_KEYS['ALL_PROPERTIES'])
+
+
+# You can also create more granular cache invalidation
+# For example, cache by location or price range:
+
+def invalidate_location_cache(location):
+    """
+    Clear cache for a specific location.
+    
+    Useful if you implement location-specific caching in the future.
+    """
+    cache_key = f"properties_location_{location.lower().replace(' ', '_')}"
+    cache.delete(cache_key)
+    logger.info(f"Cleared location cache for: {location}")
+
+
+def invalidate_price_range_cache(min_price, max_price):
+    """
+    Clear cache for a specific price range.
+    
+    Useful if you implement price-range specific caching in the future.
+    """
+    cache_key = f"properties_price_{min_price}_{max_price}"
+    cache.delete(cache_key)
+    logger.info(f"Cleared price range cache: ${min_price} - ${max_price}")
