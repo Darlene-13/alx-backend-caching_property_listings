@@ -149,3 +149,111 @@ Watching for file changes with StatReloader
 /home/darlenewendie/Downloads/alx-backend-caching_property_listings/properties/utils.py changed, reloading.
 Property signals imported and registered successfully.
 Watching for file changes with StatReloader
+Property signals imported and registered successfully.
+Property signals imported and registered successfully.
+Watching for file changes with StatReloader
+"GET / HTTP/1.1" 302 0
+Checking cache for key: all_properties
+Cache HIT: Returning cached properties
+Cache HIT: Returning cached property count
+"GET /properties/ HTTP/1.1" 200 2099
+Not Found: /favicon.ico
+"GET /favicon.ico HTTP/1.1" 404 2549
+"GET /properties/cache-test/ HTTP/1.1" 200 217
+Checking cache for key: all_properties
+Cache HIT: Returning cached properties
+Cache MISS: Fetching property count from database
+Cached property count: 0
+"GET /properties/ HTTP/1.1" 200 2099
+Checking cache for key: all_properties
+Cache HIT: Returning cached properties
+Cache HIT: Returning cached property count
+"GET /properties/ HTTP/1.1" 200 118
+Internal Server Error: /properties/cache-status/
+Traceback (most recent call last):
+  File "/home/darlenewendie/.local/lib/python3.12/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/darlenewendie/.local/lib/python3.12/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/darlenewendie/Downloads/alx-backend-caching_property_listings/properties/views.py", line 159, in cache_status
+    cache_key = f"views.decorators.cache.cache_page.{request.get_full_path()}.{request.LANGUAGE_CODE}.{settings.TIME_ZONE}"
+                                                                               ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'WSGIRequest' object has no attribute 'LANGUAGE_CODE'
+"GET /properties/cache-status/ HTTP/1.1" 500 71829
+Checking cache for key: all_properties
+Cache HIT: Returning cached properties
+Cache HIT: Returning cached property count
+"GET /properties/ HTTP/1.1" 200 2099
+"GET /properties/ HTTP/1.1" 200 2099
+"GET / HTTP/1.1" 302 0
+Not Found: /favicon.ico
+"GET /favicon.ico HTTP/1.1" 404 2549
+/home/darlenewendie/Downloads/alx-backend-caching_property_listings/properties/views.py changed, reloading.
+Property signals imported and registered successfully.
+Watching for file changes with StatReloader
+/home/darlenewendie/Downloads/alx-backend-caching_property_listings/properties/views.py changed, reloading.
+Property signals imported and registered successfully.
+Watching for file changes with StatReloader
+"GET /properties/ HTTP/1.1" 200 2099
+"GET /properties/cache-status/ HTTP/1.1" 200 464
+"GET /properties/cache-status/ HTTP/1.1" 200 464
+Forbidden (CSRF cookie not set.): /properties/cache-clear/
+"POST /properties/cache-clear/ HTTP/1.1" 403 2855
+Forbidden (CSRF cookie not set.): /properties/cache-clear/
+"POST //properties/cache-clear/ HTTP/1.1" 403 2855
+Retrieving Redis cache metrics...
+Redis cache metrics retrieved successfully:
+  Hit ratio: 50.00%
+  Total operations: 40
+  Memory usage: 954.89K
+  Connected clients: 1
+"GET //properties/redis-metrics/ HTTP/1.1" 200 921
+Forbidden (CSRF cookie not set.): /properties/cache-load-test/
+"POST //properties/cache-load-test/ HTTP/1.1" 403 2855
+Forbidden (CSRF cookie not set.): /properties/test-signals/
+"POST //properties/test-signals/ HTTP/1.1" 403 2855
+/home/darlenewendie/Downloads/alx-backend-caching_property_listings/properties/views.py changed, reloading.
+Property signals imported and registered successfully.
+Watching for file changes with StatReloader
+/home/darlenewendie/Downloads/alx-backend-caching_property_listings/properties/views.py changed, reloading.
+Property signals imported and registered successfully.
+Watching for file changes with StatReloader
+Forbidden (CSRF cookie not set.): /properties/test-signals/
+"POST //properties/test-signals/ HTTP/1.1" 403 2855
+Forbidden (CSRF cookie not set.): /properties/test-signals/
+"POST //properties/test-signals/ HTTP/1.1" 403 2855
+/home/darlenewendie/Downloads/alx-backend-caching_property_listings/properties/views.py changed, reloading.
+Property signals imported and registered successfully.
+Watching for file changes with StatReloader
+/home/darlenewendie/Downloads/alx-backend-caching_property_listings/properties/views.py changed, reloading.
+Property signals imported and registered successfully.
+Watching for file changes with StatReloader
+/home/darlenewendie/Downloads/alx-backend-caching_property_listings/properties/views.py changed, reloading.
+Property signals imported and registered successfully.
+Watching for file changes with StatReloader
+/home/darlenewendie/Downloads/alx-backend-caching_property_listings/properties/views.py changed, reloading.
+Property signals imported and registered successfully.
+Watching for file changes with StatReloader
+/home/darlenewendie/Downloads/alx-backend-caching_property_listings/properties/views.py changed, reloading.
+Property signals imported and registered successfully.
+Watching for file changes with StatReloader
+Property signals imported and registered successfully.
+Property signals imported and registered successfully.
+Watching for file changes with StatReloader
+"GET / HTTP/1.1" 302 0
+Checking cache for key: all_properties
+Cache HIT: Returning cached properties
+Cache HIT: Returning cached property count
+"GET /properties/ HTTP/1.1" 200 2099
+Property created: Test Property 2064 (ID: 1)
+Invalidating property cache due to post_save signal
+Cache invalidated after property created
+Property created - Title: Test Property 2064, Location: Test Location, Price: $1500.00
+"POST //properties/test-signals/ HTTP/1.1" 200 696
+"POST //properties/cache-load-test/ HTTP/1.1" 200 205
+Cache cleared: ALL_PROPERTIES (all_properties)
+Cache cleared: PROPERTY_COUNT (property_count)
+Property cache invalidation completed
+"POST //properties/cache-clear/ HTTP/1.1" 200 329

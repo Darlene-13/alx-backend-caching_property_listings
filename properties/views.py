@@ -8,6 +8,7 @@ from django.conf import settings
 from .models import Property
 from .utils import get_all_properties, get_property_count, get_cache_info, invalidate_property_cache, get_redis_cache_metrics
 import time
+from django.views.decorators.csrf import csrf_exempt
 
 
 # Cache the view for 15 minutes (60 seconds * 15 = 900 seconds)
@@ -151,12 +152,15 @@ def property_list_no_cache(request):
     }
     return render(request, 'properties/property_list.html', context)
 
-
 def cache_status(request):
     """
     Debug view to check cache status - useful for development
     """
-    cache_key = f"views.decorators.cache.cache_page.{request.get_full_path()}.{request.LANGUAGE_CODE}.{settings.TIME_ZONE}"
+    # Fix the language code access
+    from django.utils import translation
+    language_code = translation.get_language() or 'en'
+    
+    cache_key = f"views.decorators.cache.cache_page.{request.get_full_path()}.{language_code}.{settings.TIME_ZONE}"
     cached_data = cache.get(cache_key)
     
     # Get cache info from our utils
@@ -174,6 +178,7 @@ def cache_status(request):
     })
 
 
+@csrf_exempt
 def cache_clear(request):
     """
     View to manually clear property cache - useful for development/admin
@@ -192,7 +197,7 @@ def cache_clear(request):
         'usage': 'Send a POST request to this endpoint to clear the property cache'
     })
 
-
+@csrf_exempt
 def test_signal_invalidation(request):
     """
     View to test signal-based cache invalidation.
@@ -383,7 +388,7 @@ def redis_metrics(request):
         from django.http import HttpResponse
         return HttpResponse(error_html)
 
-
+@csrf_exempt
 def cache_load_test(request):
     """
     View to generate cache load for testing metrics.
