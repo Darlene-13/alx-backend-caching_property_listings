@@ -6,6 +6,7 @@ signal handlers are imported and registered when Django starts.
 """
 
 from django.apps import AppConfig
+import properties.signals  # Import signals to register them
 
 
 class PropertiesConfig(AppConfig):
@@ -35,7 +36,7 @@ class PropertiesConfig(AppConfig):
         IMPORTANT: This method can be called multiple times during
         Django's startup, so make sure any code here is safe to run
         multiple times.
-        """
+        """ 
         try:
             # Import signal handlers
             # This registers the @receiver decorated functions with Django
@@ -64,3 +65,38 @@ class PropertiesConfig(AppConfig):
             logger = logging.getLogger(__name__)
             logger.error(f"Unexpected error during signal registration: {str(e)}")
             raise
+
+    def __str__(self):
+        """
+        String representation of the app configuration.
+        
+        This is used in Django admin and other places where the app
+        configuration is displayed.
+        
+        Returns:
+            str: Human-readable name of the app
+        """
+        return self.verbose_name
+    def get_version(self):
+        """
+        Get the current version of the properties app.
+
+        This method can be used to retrieve the app version
+        for display or logging purposes.
+
+        Returns:
+            str: The current version of the app
+        """
+        return "1.0.0"
+    def get_description(self):
+        """
+        Get a brief description of the properties app.
+
+        This method can be used to retrieve the app description
+        for display or documentation purposes.
+
+        Returns:
+            str: A brief description of the app
+        """
+        return "This app manages property listings and related functionality."
+    

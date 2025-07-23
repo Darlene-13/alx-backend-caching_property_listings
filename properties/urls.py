@@ -1,6 +1,7 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
+from django.urls import path
 from . import views
+
+# App namespace for URL reversing
 app_name = 'properties'
 
 urlpatterns = [
@@ -13,6 +14,10 @@ urlpatterns = [
     # Cache management and debugging endpoints
     path('cache-status/', views.cache_status, name='cache_status'),
     path('cache-clear/', views.cache_clear, name='cache_clear'),
+    
+    # Signal testing endpoints
+    path('test-signals/', views.test_signal_invalidation, name='test_signals'),
+    path('delete-test-properties/', views.delete_test_properties, name='delete_test_properties'),
     
     # You can add more property-related URLs here in the future, such as:
     # path('<int:property_id>/', views.property_detail, name='property_detail'),

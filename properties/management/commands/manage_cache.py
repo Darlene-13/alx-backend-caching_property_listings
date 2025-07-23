@@ -30,6 +30,11 @@ class Command(BaseCommand):
             action='store_true',
             help='Pre-populate cache with property data',
         )
+        parser.add_argument(
+            '--test-signals',
+            action='store_true',
+            help='Test signal-based cache invalidation',
+        )
 
     def handle(self, *args, **options):
         if options['status']:
@@ -38,10 +43,12 @@ class Command(BaseCommand):
             self.clear_cache()
         elif options['warm']:
             self.warm_cache()
+        elif options['test_signals']:
+            self.test_signals()
         else:
             self.stdout.write(
                 self.style.WARNING(
-                    'Please specify an action: --status, --clear, or --warm'
+                    'Please specify an action: --status, --clear, --warm, or --test-signals'
                 )
             )
 
@@ -61,16 +68,20 @@ class Command(BaseCommand):
 
     def clear_cache(self):
         """Clear all property cache entries"""
-        success = invalidate_property_cache()
+        result = invalidate_property_cache()
         
-        if success:
+        if result['success']:
             self.stdout.write(
                 self.style.SUCCESS('Successfully cleared property cache')
             )
+            for cache_info in result['cleared_caches']:
+                self.stdout.write(f"  Cleared: {cache_info['name']}")
         else:
             self.stdout.write(
                 self.style.ERROR('Error clearing property cache')
             )
+            for error in result['errors']:
+                self.stdout.write(f"  Error: {error}")
 
     def warm_cache(self):
         """Pre-populate cache with property data"""
@@ -83,5 +94,48 @@ class Command(BaseCommand):
                 f'Cache warmed up successfully:\n'
                 f'  Properties cached: {result["properties_cached"]}\n'
                 f'  Count cached: {result["count_cached"]}'
+            )
+        )
+
+    def test_signals(self):
+        """Test signal-based cache invalidation"""
+        from properties.models import Property
+        from decimal import Decimal
+        import random
+        
+        self.stdout.write('Testing signal-based cache invalidation...')
+        
+        # First, warm the cache
+        self.stdout.write('1. Warming cache...')
+        warm_cache()
+        
+        # Check cache status
+        cache_info_before = get_cache_info()
+        self.stdout.write(f'2. Cache status before: {cache_info_before}')
+        
+        # Create a test property (should trigger signal)
+        self.stdout.write('3. Creating test property (should trigger signal)...')
+        test_property = Property.objects.create(
+            title=f"Signal Test Property {random.randint(1000, 9999)}",
+            description="Created to test signal-based cache invalidation",
+            price=Decimal('999.99'),
+            location="Signal Test Location"
+        )
+        
+        # Check cache status after creation
+        cache_info_after = get_cache_info()
+        self.stdout.write(f'4. Cache status after creation: {cache_info_after}')
+        
+        # Delete the test property (should also trigger signal)
+        self.stdout.write('5. Deleting test property (should trigger signal)...')
+        test_property.delete()
+        
+        # Final cache status
+        cache_info_final = get_cache_info()
+        self.stdout.write(f'6. Final cache status: {cache_info_final}')
+        
+        self.stdout.write(
+            self.style.SUCCESS(
+                'Signal test completed! Check the cache status changes above.'
             )
         )

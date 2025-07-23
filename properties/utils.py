@@ -107,20 +107,48 @@ def invalidate_property_cache():
     Call this function when properties are added, updated, or deleted
     to ensure cached data stays fresh.
     
+    This function is also called automatically by Django signals.
+    
     Returns:
-        bool: True if cache was cleared successfully
+        dict: Information about what caches were cleared
     """
+    cleared_caches = []
+    errors = []
+    
     try:
         # Delete specific cache keys
-        cache.delete(CACHE_KEYS['ALL_PROPERTIES'])
-        cache.delete(CACHE_KEYS['PROPERTY_COUNT'])
+        for cache_name, cache_key in CACHE_KEYS.items():
+            try:
+                result = cache.delete(cache_key)
+                cleared_caches.append({
+                    'name': cache_name,
+                    'key': cache_key,
+                    'cleared': result  # True if key existed and was deleted
+                })
+                logger.info(f"Cache cleared: {cache_name} ({cache_key})")
+            except Exception as e:
+                error_msg = f"Error clearing {cache_name}: {str(e)}"
+                errors.append(error_msg)
+                logger.error(error_msg)
         
-        logger.info("Property cache invalidated successfully")
-        return True
+        logger.info("Property cache invalidation completed")
+        
+        return {
+            'success': len(errors) == 0,
+            'cleared_caches': cleared_caches,
+            'errors': errors,
+            'total_cleared': len(cleared_caches)
+        }
         
     except Exception as e:
-        logger.error(f"Error invalidating property cache: {str(e)}")
-        return False
+        error_msg = f"Critical error during cache invalidation: {str(e)}"
+        logger.error(error_msg)
+        return {
+            'success': False,
+            'cleared_caches': cleared_caches,
+            'errors': [error_msg],
+            'total_cleared': len(cleared_caches)
+        }
 
 
 def get_cache_info():

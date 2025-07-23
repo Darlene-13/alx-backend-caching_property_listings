@@ -91,16 +91,83 @@ def cache_clear(request):
     View to manually clear property cache - useful for development/admin
     """
     if request.method == 'POST':
-        success = invalidate_property_cache()
+        result = invalidate_property_cache()
         return JsonResponse({
-            'success': success,
-            'message': 'Property cache cleared successfully' if success else 'Error clearing cache',
+            'success': result['success'],
+            'message': 'Property cache cleared successfully' if result['success'] else 'Errors occurred while clearing cache',
+            'details': result,
             'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
         })
     
     return JsonResponse({
         'error': 'Only POST requests are allowed',
         'usage': 'Send a POST request to this endpoint to clear the property cache'
+    })
+
+
+def test_signal_invalidation(request):
+    """
+    View to test signal-based cache invalidation.
+    
+    This view creates a test property to demonstrate automatic cache clearing.
+    """
+    if request.method == 'POST':
+        from decimal import Decimal
+        import random
+        
+        # Check if cache has data before creating property
+        cache_before = get_cache_info()
+        
+        # Create a test property (this should trigger our signals)
+        test_property = Property.objects.create(
+            title=f"Test Property {random.randint(1000, 9999)}",
+            description="This is a test property created to demonstrate signal-based cache invalidation.",
+            price=Decimal('1500.00'),
+            location="Test Location"
+        )
+        
+        # Check cache status after creation
+        cache_after = get_cache_info()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Test property created successfully',
+            'property': {
+                'id': test_property.id,
+                'title': test_property.title,
+                'price': str(test_property.price)
+            },
+            'cache_before': cache_before,
+            'cache_after': cache_after,
+            'note': 'If signals are working, cache should be cleared automatically',
+            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+        })
+    
+    return JsonResponse({
+        'error': 'Only POST requests are allowed',
+        'usage': 'Send a POST request to create a test property and see signal-based cache invalidation in action'
+    })
+
+
+def delete_test_properties(request):
+    """
+    View to clean up test properties created by test_signal_invalidation.
+    """
+    if request.method == 'POST':
+        # Delete test properties
+        deleted_count = Property.objects.filter(title__startswith='Test Property').delete()[0]
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Deleted {deleted_count} test properties',
+            'deleted_count': deleted_count,
+            'note': 'If signals are working, cache should be cleared automatically',
+            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+        })
+    
+    return JsonResponse({
+        'error': 'Only POST requests are allowed',
+        'usage': 'Send a POST request to delete test properties'
     })
 
 
