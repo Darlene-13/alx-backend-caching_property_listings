@@ -1,0 +1,5 @@
+Property signals imported and registered successfully
+Property signals imported and registered successfully
+Warming up property cache...
+Checking cache for key: all_properties
+Cache MISS: Fetching properties from database
