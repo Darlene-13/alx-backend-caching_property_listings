@@ -1,145 +1,160 @@
-from django.core.cache import cache
-from django.core.serializers import serialize
-from django.core.serializers.json import DjangoJSONEncoder
-import json
-import logging
-from .models import Property
+"""
+Utility functions for property caching and data management.
 
+This module contains functions that implement low-level caching
+using Django's cache framework with Redis backend.
+"""
+
+from django.core.cache import cache
+from django.db import models
+from .models import Property
+import logging
+
+# Set up logging for cache operations
 logger = logging.getLogger(__name__)
+
+# Cache keys - centralized for easy management
+CACHE_KEYS = {
+    'ALL_PROPERTIES': 'all_properties',
+    'PROPERTY_COUNT': 'property_count',
+}
+
+# Cache timeouts (in seconds)
+CACHE_TIMEOUTS = {
+    'PROPERTIES': 3600,  # 1 hour (60 * 60)
+    'COUNT': 1800,       # 30 minutes (60 * 30)
+}
 
 
 def get_all_properties():
     """
-    Get all properties from cache or database.
+    Get all properties with Redis caching for 1 hour.
     
-    This function implements low-level caching using Django's cache API.
-    It checks Redis for cached property data and fetches from database
-    if not found, then caches the result for 1 hour.
+    This function implements Django's low-level cache API to:
+    1. Check if properties are already cached in Redis
+    2. If cached data exists, return it (fast path)
+    3. If no cached data, fetch from database
+    4. Store the fresh data in Redis for 1 hour
+    5. Return the queryset
     
     Returns:
-        QuerySet: All Property objects
+        QuerySet: All Property objects, either from cache or database
     """
-    cache_key = 'all_properties'
+    cache_key = CACHE_KEYS['ALL_PROPERTIES']
     
-    # Try to get properties from cache
+    # Step 1: Try to get cached data from Redis
+    logger.info(f"Checking cache for key: {cache_key}")
     cached_properties = cache.get(cache_key)
     
     if cached_properties is not None:
-        logger.info("Properties retrieved from cache")
+        logger.info("Cache HIT: Returning cached properties")
         return cached_properties
     
-    # If not in cache, fetch from database
-    logger.info("Properties not found in cache, fetching from database")
+    # Step 2: Cache miss - fetch from database
+    logger.info("Cache MISS: Fetching properties from database")
+    
+    # Fetch all properties, ordered by creation date (newest first)
+    # Using select_related() if you have foreign keys, or prefetch_related() for many-to-many
     queryset = Property.objects.all().order_by('-created_at')
     
-    # Convert queryset to list to make it serializable for caching
+    # Convert QuerySet to list to make it cacheable
+    # QuerySets are lazy and can't be pickled (cached) directly
     properties_list = list(queryset)
     
-    # Store in cache for 1 hour (3600 seconds)
-    cache.set(cache_key, properties_list, 3600)
-    logger.info(f"Cached {len(properties_list)} properties for 1 hour")
+    # Step 3: Store in Redis cache for 1 hour (3600 seconds)
+    cache_timeout = CACHE_TIMEOUTS['PROPERTIES']
+    cache.set(cache_key, properties_list, cache_timeout)
+    
+    logger.info(f"Cached {len(properties_list)} properties for {cache_timeout} seconds")
     
     return properties_list
 
 
-def invalidate_properties_cache():
+def get_property_count():
     """
-    Invalidate the properties cache.
+    Get total property count with caching.
     
-    This function should be called whenever properties are
-    created, updated, or deleted to ensure cache consistency.
-    """
-    cache_key = 'all_properties'
-    cache.delete(cache_key)
-    logger.info("Properties cache invalidated")
-
-
-def get_property_by_id(property_id):
-    """
-    Get a specific property by ID with caching.
-    
-    Args:
-        property_id (int): The ID of the property to retrieve
-        
-    Returns:
-        Property: The property object or None if not found
-    """
-    cache_key = f'property_{property_id}'
-    
-    # Try to get property from cache
-    cached_property = cache.get(cache_key)
-    
-    if cached_property is not None:
-        logger.info(f"Property {property_id} retrieved from cache")
-        return cached_property
-    
-    # If not in cache, fetch from database
-    try:
-        property_obj = Property.objects.get(id=property_id)
-        
-        # Store in cache for 30 minutes (1800 seconds)
-        cache.set(cache_key, property_obj, 1800)
-        logger.info(f"Property {property_id} cached for 30 minutes")
-        
-        return property_obj
-    except Property.DoesNotExist:
-        logger.warning(f"Property {property_id} not found")
-        return None
-
-
-def get_properties_by_location(location):
-    """
-    Get properties filtered by location with caching.
-    
-    Args:
-        location (str): The location to filter properties by
-        
-    Returns:
-        list: List of Property objects in the specified location
-    """
-    cache_key = f'properties_location_{location.lower().replace(" ", "_")}'
-    
-    # Try to get properties from cache
-    cached_properties = cache.get(cache_key)
-    
-    if cached_properties is not None:
-        logger.info(f"Properties for location '{location}' retrieved from cache")
-        return cached_properties
-    
-    # If not in cache, fetch from database
-    queryset = Property.objects.filter(
-        location__icontains=location
-    ).order_by('-created_at')
-    
-    properties_list = list(queryset)
-    
-    # Store in cache for 45 minutes (2700 seconds)
-    cache.set(cache_key, properties_list, 2700)
-    logger.info(f"Cached {len(properties_list)} properties for location '{location}'")
-    
-    return properties_list
-
-
-def cache_statistics():
-    """
-    Get cache statistics for monitoring.
+    Separate function for count to avoid loading all objects
+    when we only need the count.
     
     Returns:
-        dict: Cache statistics including hit/miss ratios
+        int: Total number of properties
+    """
+    cache_key = CACHE_KEYS['PROPERTY_COUNT']
+    
+    # Check cache first
+    cached_count = cache.get(cache_key)
+    
+    if cached_count is not None:
+        logger.info("Cache HIT: Returning cached property count")
+        return cached_count
+    
+    # Cache miss - get count from database
+    logger.info("Cache MISS: Fetching property count from database")
+    count = Property.objects.count()
+    
+    # Cache for 30 minutes
+    cache.set(cache_key, count, CACHE_TIMEOUTS['COUNT'])
+    
+    logger.info(f"Cached property count: {count}")
+    return count
+
+
+def invalidate_property_cache():
+    """
+    Invalidate (clear) all property-related cache entries.
+    
+    Call this function when properties are added, updated, or deleted
+    to ensure cached data stays fresh.
+    
+    Returns:
+        bool: True if cache was cleared successfully
     """
     try:
-        # Test cache connectivity
-        cache.set('cache_test', 'test_value', 10)
-        test_result = cache.get('cache_test')
+        # Delete specific cache keys
+        cache.delete(CACHE_KEYS['ALL_PROPERTIES'])
+        cache.delete(CACHE_KEYS['PROPERTY_COUNT'])
         
-        return {
-            'cache_connected': test_result == 'test_value',
-            'cache_backend': cache.__class__.__name__,
-            'all_properties_cached': cache.get('all_properties') is not None,
-        }
+        logger.info("Property cache invalidated successfully")
+        return True
+        
     except Exception as e:
-        logger.error(f"Cache statistics error: {e}")
-        return {
-            'cache_connected': False,
-            'error': str(e)
-        }
+        logger.error(f"Error invalidating property cache: {str(e)}")
+        return False
+
+
+def get_cache_info():
+    """
+    Get information about current cache status.
+    
+    Useful for debugging and monitoring cache performance.
+    
+    Returns:
+        dict: Cache status information
+    """
+    return {
+        'all_properties_cached': cache.get(CACHE_KEYS['ALL_PROPERTIES']) is not None,
+        'property_count_cached': cache.get(CACHE_KEYS['PROPERTY_COUNT']) is not None,
+        'cache_keys': CACHE_KEYS,
+        'cache_timeouts': CACHE_TIMEOUTS,
+    }
+
+
+def warm_cache():
+    """
+    Pre-populate cache with property data.
+    
+    Call this function to proactively load data into cache,
+    useful for improving performance before peak usage times.
+    """
+    logger.info("Warming up property cache...")
+    
+    # This will fetch from database and cache the results
+    properties = get_all_properties()
+    count = get_property_count()
+    
+    logger.info(f"Cache warmed up with {len(properties)} properties")
+    return {
+        'properties_cached': len(properties),
+        'count_cached': count
+    }
