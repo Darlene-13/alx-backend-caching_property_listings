@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     # Installed third-party apps can be added here
     'rest_framework',
     'django_filters',
+    'django_redis',  # Redis cache backend
 ]
 
 MIDDLEWARE = [
@@ -62,8 +63,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.cache.UpdateCacheMiddleware', #Cache middleware
-    'django.middlware.cache.FetchFromCacheMiddleware', #cache middleware
+    #'django.middleware.cache.UpdateCacheMiddleware', #Cache middleware
+    #'django.middleware.cache.FetchFromCacheMiddleware', #cache middleware
 ]
 
 ROOT_URLCONF = 'alx_backend_caching_property_listings.urls'
@@ -108,19 +109,20 @@ DATABASES = {
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': f"redis://{env('REDIS_HOST', default = 'localhost')}:{env('REDIS_PORT',  default = '6379')}/",
+        'LOCATION': 'redis://localhost:6379/1',  # Use 'redis://redis:6379/1' when running Django in Docker
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'SERIALIZER': 'django_redis.serializers.pickle.PickleSerializer',
             'CONNECTION_POOL_KWARGS': {
                 'max_connections': 50,
                 'retry_on_timeout': True,
             },
-            'SERIALIZER': 'django_redis.serializers.json.JSONSerializer',
             'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+            'IGNORE_EXCEPTIONS': True,  # Don't break the site if Redis is down
         },
-        'KEY_PREFIX': 'property_listings',
-        'TIMEOUT': 60 *15, # 15 minutes default timeout
+        'KEY_PREFIX': 'property_listings',  # Prefix for all cache keys to avoid conflicts
         'VERSION': 1,
+        'TIMEOUT': 60*15,  # Default timeout of 15 minutes
     }
 }
 

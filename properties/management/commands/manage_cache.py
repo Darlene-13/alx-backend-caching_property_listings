@@ -8,7 +8,7 @@ python manage.py manage_cache --warm
 """
 
 from django.core.management.base import BaseCommand
-from properties.utils import get_cache_info, invalidate_property_cache, warm_cache
+from properties.utils import get_cache_info, invalidate_property_cache, warm_cache, get_redis_cache_metrics
 
 
 class Command(BaseCommand):
@@ -35,6 +35,11 @@ class Command(BaseCommand):
             action='store_true',
             help='Test signal-based cache invalidation',
         )
+        parser.add_argument(
+            '--metrics',
+            action='store_true',
+            help='Show Redis cache hit/miss metrics and performance analysis',
+        )
 
     def handle(self, *args, **options):
         if options['status']:
@@ -45,10 +50,12 @@ class Command(BaseCommand):
             self.warm_cache()
         elif options['test_signals']:
             self.test_signals()
+        elif options['metrics']:
+            self.show_metrics()
         else:
             self.stdout.write(
                 self.style.WARNING(
-                    'Please specify an action: --status, --clear, --warm, or --test-signals'
+                    'Please specify an action: --status, --clear, --warm, --test-signals, or --metrics'
                 )
             )
 
@@ -139,3 +146,59 @@ class Command(BaseCommand):
                 'Signal test completed! Check the cache status changes above.'
             )
         )
+
+    def show_metrics(self):
+        """Display Redis cache hit/miss metrics and performance analysis"""
+        self.stdout.write(self.style.SUCCESS('Redis Cache Metrics:'))
+        self.stdout.write('=' * 50)
+        
+        metrics_result = get_redis_cache_metrics()
+        
+        if metrics_result['success']:
+            metrics = metrics_result['metrics']
+            
+            # Cache Performance
+            perf = metrics['cache_performance']
+            self.stdout.write(f"\n{self.style.SUCCESS('Cache Performance:')}")
+            self.stdout.write(f"  Hit Ratio: {perf['hit_ratio_percent']}%")
+            self.stdout.write(f"  Performance Rating: {perf['performance_rating']}")
+            self.stdout.write(f"  Keyspace Hits: {perf['keyspace_hits']:,}")
+            self.stdout.write(f"  Keyspace Misses: {perf['keyspace_misses']:,}")
+            self.stdout.write(f"  Total Operations: {perf['total_operations']:,}")
+            
+            # Memory Usage
+            memory = metrics['memory_usage']
+            self.stdout.write(f"\n{self.style.SUCCESS('Memory Usage:')}")
+            self.stdout.write(f"  Used Memory: {memory['used_memory_human']}")
+            
+            # Server Info
+            server = metrics['server_info']
+            self.stdout.write(f"\n{self.style.SUCCESS('Server Information:')}")
+            self.stdout.write(f"  Redis Version: {server['redis_version']}")
+            self.stdout.write(f"  Uptime: {server['uptime_human']}")
+            
+            # Connection Stats
+            conn = metrics['connection_stats']
+            self.stdout.write(f"\n{self.style.SUCCESS('Connection Statistics:')}")
+            self.stdout.write(f"  Connected Clients: {conn['connected_clients']}")
+            self.stdout.write(f"  Total Connections: {conn['total_connections_received']:,}")
+            self.stdout.write(f"  Total Commands: {conn['total_commands_processed']:,}")
+            
+            # Analysis
+            analysis = metrics['analysis']
+            self.stdout.write(f"\n{self.style.SUCCESS('Analysis:')}")
+            self.stdout.write(f"  {analysis['cache_efficiency']}")
+            
+            # Recommendations
+            self.stdout.write(f"\n{self.style.SUCCESS('Recommendations:')}")
+            for i, rec in enumerate(analysis['recommendations'], 1):
+                self.stdout.write(f"  {i}. {rec}")
+                
+        else:
+            self.stdout.write(
+                self.style.ERROR(f"Error retrieving metrics: {metrics_result['error']}")
+            )
+            if 'recommendations' in metrics_result:
+                self.stdout.write(f"\n{self.style.WARNING('Troubleshooting:')}")
+                for rec in metrics_result['recommendations']:
+                    self.stdout.write(f"  - {rec}")
